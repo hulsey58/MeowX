@@ -5,7 +5,6 @@
 # Use restarter script to pi to monitor this script
 
 
-
 # Version: 0.0.3a
 
 # Added SimpleMessage, which I forgot to import in the previous version
