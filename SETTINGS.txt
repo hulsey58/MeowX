@@ -1,0 +1,37 @@
+SENSOR_PIN=4
+BLUE_LED_PIN=15
+YELLOW_LED_PIN=24
+BUTTON_PIN=26
+TRIGGER_HIGH_PIN=20          # Pin that is 3v3 when trigger is pressed/held, 0 when trigger is off
+TRIGGER_LOW_PIN=21           # Pin that is 0 when trigger is pressed/held, 3v3 when trigger is off
+
+MEOW_DURATION_AVG=.3         # Average length of meow sound
+MEOW_DURATION_RANGE=.1       # Allowable difference from MEOW_DURATION_AVG
+
+NUMBER_OF_MEOWS_TO_TRIGGER=3 # Number of meows in under TRIGGER_WATCH_SECONDS
+TRIGGER_WATCH_SECONDS=5      # NUMBER_OF_MEOWS_TO_TRIGGER meows in these seconds will trigger
+
+TRIGGER_HOLD_DURATION=2      # Time to hold trigger in seconds
+
+MAX_TRIGGERS_PER_MINUTE=1
+MAX_TRIGGERS_PER_15_MIN=1
+MAX_TRIGGERS_PER_DAY=10
+
+EVENT_LOG_FILE_NAME_BASE='/home/pi/MeowX/Logs/Event_Log---'  # Events with timestamps
+TIME_LOG_FILE_NAME_BASE='/home/pi/MeowX/Logs/Time_Log---'    # Meows per minute
+
+LOG_FILE_EXT='.txt'
+
+LOG_DURATION_HOURS=24         # Frequency to restart logs
+
+EMAIL_LOGS_ENABLED=True
+EMAIL_LOGS_FREQUENCY_HOURS=24 # Frequency to email current logs
+TO_EMAIL_ADDRESS='hulsey314@gmail.com'
+
+# Start and end monitor times (24-hour, integers)
+MONITOR_START_HOUR=22
+MONITOR_START_MINUTE=0
+MONITOR_END_HOUR=6           # END_HOUR assumes the next day
+MONITOR_END_MINUTE=0
+
+FORCE_MONITORING_ON=True     # Turns on monitoring outside usual monitor hours for debugging
