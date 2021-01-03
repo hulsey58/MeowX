@@ -240,9 +240,9 @@ with open(SETTINGS_FILE_PATH, 'r') as f:
                 # No space or comments, the_rest is a value (int or boolean)
                 value_part = the_rest
 
-        print('Variable: |{}|'.format(variable_part))
-        print('Value: |{}|'.format(value_part))
-        print('--------------')
+        #print('Variable: |{}|'.format(variable_part))
+        #print('Value: |{}|'.format(value_part))
+        #print('--------------')
 
         if variable_part == 'SENSOR_PIN':
             SENSOR_PIN = int(value_part)
