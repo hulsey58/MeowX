@@ -1,16 +1,14 @@
 # Listens for cat meows by detecting loud sounds at night with the right frequency
 # Logs to 2 files - one with timestamps of sounds, one that shows sounds per minute (or per 5-min interval) for each minute
 
+# ** Use restarter script on pi to monitor this script
 
-# Use restarter script to pi to monitor this script
 
+# Current version: v0.1.0a
 
-# Version: 0.0.3a
-
-# Added SimpleMessage, which I forgot to import in the previous version
-# Updating to record all sounds on the rise, not just triggers
-
-# Updated script to work with earlier versions of Python 3.x by replacing f strings with format()
+# Changelog:
+# v0.1.0 - Split settings out into SETTINGS.txt file which is loaded at the beginning
+# v0.0.3 - Added missed import SimpleMessage, updated to record all sounds on the rise, replaced F strings with format()
 
 
 import RPi.GPIO as GPIO
@@ -23,7 +21,6 @@ from random import choice
 import time
 
 import SimpleMessage
-
 
 
 
@@ -94,36 +91,35 @@ def callback(channel):
        ##     else:
        ##         print (f'Not a meow - Sound length: {round(sound_duration,2)}s')
 
-# TODO: Disabled for now ---------------------------------------------------------------------------------------------
-#
-#def playSound(path, wait_until_done = False, play_over_other_sound = False):
-#    if pygame.mixer.music.get_busy():
-#        if not play_over_other_sound:
-#            print ('Another sound is currently playing')
-#            return
-#
-#    print ('Loading sound...')
-#    pygame.mixer.music.load(path)
-#    print ('Playing sound...')
-#    pygame.mixer.music.play()
-#
-#    if wait_until_done:
-#        for event in pygame.event.get():
-#            if event.type == SOUND_END:
-#                print ('The sound ended!')
-#                return
-#    else:
-#        return
-#
-#
-#def playRandomSound():
-#    sound_choice = choice(SOUND_LIST)
-#    print (f'Random sound chosen: {sound_choice}')
-#    playSound(sound_choice)
-#    return sound_choice
-#
-#def stopSound():
-#    pygame.mixer.music.stop()
+
+def playSound(path, wait_until_done = False, play_over_other_sound = False):
+    if pygame.mixer.music.get_busy():
+        if not play_over_other_sound:
+            print ('Another sound is currently playing')
+            return
+
+    print ('Loading sound...')
+    pygame.mixer.music.load(path)
+    print ('Playing sound...')
+    pygame.mixer.music.play()
+
+    if wait_until_done:
+        for event in pygame.event.get():
+            if event.type == SOUND_END:
+                print ('The sound ended!')
+                return
+    else:
+        return
+
+
+def playRandomSound():
+    sound_choice = choice(SOUND_LIST)
+    print ('Random sound chosen: {}'.format(sound_choice))
+    playSound(sound_choice)
+    return sound_choice
+
+def stopSound():
+    pygame.mixer.music.stop()
 # -------------------------------------------------------------------------------------------------------------------
 
 def emailLogs(event_log_file_name_to_send = 'current', time_log_file_name_to_send = 'current'):
@@ -213,47 +209,100 @@ class Logger():
 
 
 
-################################################################################
-#                              Settings                                        #
-################################################################################
 
-SENSOR_PIN = 4
-BLUE_LED_PIN = 15
-YELLOW_LED_PIN = 24
-BUTTON_PIN = 26
-TRIGGER_HIGH_PIN = 20  # Pin that is 3v3 when trigger is pressed/held, 0 when trigger is off
-TRIGGER_LOW_PIN = 21  # Pin that is 0 when trigger is pressed/held, 3v3 when trigger is off
+# Load Settings
+SETTINGS_FILE_PATH = '/home/pi/MeowX/SETTINGS.txt'
+with open(SETTINGS_FILE_PATH, 'r') as f:
+    for settings_line_raw in f:
 
-MEOW_DURATION_AVG = .3    # Average length of meow sound
-MEOW_DURATION_RANGE = .1  # Allowable difference from MEOW_DURATION_AVG
+        settings_line = settings_line_raw.strip('\n')
 
-NUMBER_OF_MEOWS_TO_TRIGGER = 3 # Number of meows in under TRIGGER_WATCH_SECONDS
-TRIGGER_WATCH_SECONDS = 5 # NUMBER_OF_MEOWS_TO_TRIGGER meows in these seconds will trigger
+        if not settings_line:
+            continue
 
-TRIGGER_HOLD_DURATION = 2  # Time to hold trigger in seconds
+        if settings_line.startswith('#'):
+            continue
 
-MAX_TRIGGERS_PER_MINUTE = 1
-MAX_TRIGGERS_PER_15_MIN = 1
-MAX_TRIGGERS_PER_DAY = 10
+        variable_part, the_rest = settings_line.split('=')
 
-EVENT_LOG_FILE_NAME_BASE = '/home/pi/MeowX/Logs/Event_Log---'  # Events with timestamps
-TIME_LOG_FILE_NAME_BASE = '/home/pi/MeowX/Logs/Time_Log---'    # Meows per minute
+        if the_rest.startswith("'"):
+            # The rest is a string, read until the next '
+            value_part = ''
+            for char in the_rest[1:]:
+                if char == "'":
+                    break
+                value_part += char
+        else:
+            # The rest is an integer or boolean and may have a comment at the end.  Split at the first space, if there is one
+            if ' ' in the_rest:
+                value_part = the_rest.split(' ')[0]
+            else:
+                # No space or comments, the_rest is a value (int or boolean)
+                value_part = the_rest
 
-LOG_FILE_EXT = '.txt'
+        print('Variable: |{}|'.format(variable_part))
+        print('Value: |{}|'.format(value_part))
+        print('--------------')
 
-LOG_DURATION_HOURS = 24  # Frequency to restart logs
+        if variable_part == 'SENSOR_PIN':
+            SENSOR_PIN = int(value_part)
+        elif variable_part == 'BLUE_LED_PIN':
+            BLUE_LED_PIN = int(value_part)
+        elif variable_part == 'YELLOW_LED_PIN':
+            YELLOW_LED_PIN = int(value_part)
+        elif variable_part == 'BUTTON_PIN':
+            BUTTON_PIN = int(value_part)
+        elif variable_part == 'TRIGGER_HIGH_PIN':
+            TRIGGER_HIGH_PIN = int(value_part)
+        elif variable_part == 'TRIGGER_LOW_PIN':
+            TRIGGER_LOW_PIN = int(value_part)
+        elif variable_part == 'MEOW_DURATION_AVG':
+            MEOW_DURATION_AVG = float(value_part)
+        elif variable_part == 'MEOW_DURATION_RANGE':
+            MEOW_DURATION_RANGE = float(value_part)
+        elif variable_part == 'NUMBER_OF_MEOWS_TO_TRIGGER':
+            NUMBER_OF_MEOWS_TO_TRIGGER = int(value_part)
+        elif variable_part == 'TRIGGER_WATCH_SECONDS':
+            TRIGGER_WATCH_SECONDS = int(value_part)
+        elif variable_part == 'TRIGGER_HOLD_DURATION':
+            TRIGGER_HOLD_DURATION = float(value_part)
+        elif variable_part == 'MAX_TRIGGERS_PER_MINUTE':
+            MAX_TRIGGERS_PER_MINUTE = int(value_part)
+        elif variable_part == 'MAX_TRIGGERS_PER_15_MIN':
+            MAX_TRIGGERS_PER_15_MIN = int(value_part)
+        elif variable_part == 'MAX_TRIGGERS_PER_DAY':
+            MAX_TRIGGERS_PER_DAY = int(value_part)
+        elif variable_part == 'EVENT_LOG_FILE_NAME_BASE':
+            EVENT_LOG_FILE_NAME_BASE = value_part
+        elif variable_part == 'TIME_LOG_FILE_NAME_BASE':
+            TIME_LOG_FILE_NAME_BASE = value_part
+        elif variable_part == 'LOG_FILE_EXT':
+            LOG_FILE_EXT = value_part
+        elif variable_part == 'LOG_DURATION_HOURS':
+            LOG_DURATION_HOURS = int(value_part)
+        elif variable_part == 'EMAIL_LOGS_ENABLED':
+            if value_part.lower() == 'true':
+                EMAIL_LOGS_ENABLED = True
+            else:
+                EMAIL_LOGS_ENABLED = False
+        elif variable_part == 'EMAIL_LOGS_FREQUENCY_HOURS':
+            EMAIL_LOGS_FREQUENCY_HOURS = int(value_part)
+        elif variable_part == 'TO_EMAIL_ADDRESS':
+            TO_EMAIL_ADDRESS = value_part
+        elif variable_part == 'MONITOR_START_HOUR':
+            MONITOR_START_HOUR = int(value_part)
+        elif variable_part == 'MONITOR_START_MINUTE':
+            MONITOR_START_MINUTE = int(value_part)
+        elif variable_part == 'MONITOR_END_HOUR':
+            MONITOR_END_HOUR = int(value_part)
+        elif variable_part == 'MONITOR_END_MINUTE':
+            MONITOR_END_MINUTE = int(value_part)
+        elif variable_part == 'FORCE_MONITORING_ON':
+            if value_part.lower() == 'true':
+                FORCE_MONITORING_ON = True
+            else:
+                FORCE_MONITORING_ON = False
 
-EMAIL_LOGS_ENABLED = True
-EMAIL_LOGS_FREQUENCY_HOURS = 24 # Frequency to email current logs
-TO_EMAIL_ADDRESS = 'hulsey314@gmail.com'
-
-# Start and end monitor times (24-hour, integers)
-MONITOR_START_HOUR = 22
-MONITOR_START_MINUTE = 0
-MONITOR_END_HOUR = 6   # Assumes the next day
-MONITOR_END_MINUTE = 0
-
-FORCE_MONITORING_ON = True  # Turns on monitoring outside usual monitor hours for debugging
 ################################################################################
 
 DEFAULT_SENDER = 'autosecretary.p2p@gmail.com'  # Can't be easily changed
@@ -297,12 +346,12 @@ last_email_sent_time = time.time()
 print('Initializing PyGame...')
 pygame.init()
 print('Initializing mixer...')
-#pygame.mixer.init()                # TODO: Debugging - had to disable mixer, problem with Pygame on local clone
+pygame.mixer.init()
 
 SOUND_END = pygame.USEREVENT + 1
-#pygame.mixer.music.set_endevent(SOUND_END)  # TODO: Disabled for now
+pygame.mixer.music.set_endevent(SOUND_END)
 
-pyclock = pygame.time.Clock()
+pyclock = pygame.time.Clock()  # TODO: Not currently used, do I need this?
 # ----------------------------------------
 
 
@@ -347,7 +396,7 @@ while running:
         GPIO.output(BLUE_LED_PIN, GPIO.HIGH)
 
 
-        # TEMP DEBUG - there are no meow_events, only sound_events
+        # TODO: TEMP DEBUG - there are no meow_events, only sound_events
 
         # Read events_to_write to detect trigger
         if meow_events:
