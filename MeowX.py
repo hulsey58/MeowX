@@ -490,7 +490,7 @@ while running:
             # Write number of meows in this duration to 2nd log file
             print ('Adding meow counts to log...')
             meow_count_last_save = time.time()
-            time_log.add_line('{}, {}\n'.format(time.time(), meow_count))
+            time_log.add_line('{}, {}\n'.format(convertTimeToTimestamp(time.time()), meow_count))
             #time_log.log(meow_count)
             meow_count = 0
         #else:
