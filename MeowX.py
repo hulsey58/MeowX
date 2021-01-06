@@ -32,13 +32,13 @@ def getSoundList():
 
 
 def generateTimestamp():
-    return str(datetime.now().strftime("%Y-%m-%d|%H:%M:%S"))
+    return str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 def generateFilenameTimestamp():
     return str(datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
 
 def convertTimeToTimestamp(t):
-    return datetime.fromtimestamp(t).strftime("%Y-%m-%d|%H:%M:%S")
+    return datetime.fromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def currentTimeWithinRange():
@@ -162,7 +162,7 @@ class Logger():
             self.create_log()
 
     def time_stamp(self):
-        return str(datetime.now().strftime("%Y-%m-%d|%H:%M:%S"))
+        return str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     def log_exists(self):
         return os.path.exists(self.log_path)
