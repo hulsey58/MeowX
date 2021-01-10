@@ -3,13 +3,12 @@
 
 # ** Use restarter script on pi to monitor this script
 
-# IN PROGRESS: Adding detection logic and logging back in after switching to polling
-
 
 # Current version: v0.3.1
 
 
 # Changelog:
+# v0.3.2 - Minor code cleanup
 # v0.3.1 - Updated to single log file in format: time, detection rate, detection percent, rate triggered, percent triggered
 # v0.3.0 - Changed from interrupts to polling
 # v0.2.0 - Put chunk size and test limits in settings file. Added calculations for detection cycles/second
@@ -42,8 +41,10 @@ def getSoundList():
 def generateTimestamp():
     return str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
+
 def generateFilenameTimestamp():
     return str(datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+
 
 def convertTimeToTimestamp(t):
     return datetime.fromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S")
@@ -59,20 +60,12 @@ def currentTimeWithinRange():
     tomorrow_end_time = now.replace(hour=MONITOR_END_HOUR, minute=MONITOR_END_MINUTE, second=0, microsecond=0)
     tomorrow_end_time += timedelta(days=1)
 
-  #  print ('NOW:')
-  #  print (now)
-  #  print (today_start_time)
-  #  print (tomorrow_end_time)
-  #  print ('----------')
-
     if now < today_start_time:
         return False
     if now > tomorrow_end_time:
         return False
 
     return True
-
-
 
 
 def playSound(path, wait_until_done = False, play_over_other_sound = False):
@@ -297,16 +290,6 @@ with open(SETTINGS_FILE_PATH, 'r') as f:
 
 DEFAULT_SENDER = 'autosecretary.p2p@gmail.com'  # Can't be easily changed
 
-
-# DEBUG - TESTING EMAIL --------------------------
-#emailLogs('/home/pi/MeowX/fake-log-1.txt', '/home/pi/MeowX/fake-log-2.txt')
-#print ('Fake logs emailed, sleeping...')
-#time.sleep(99999)
-# ------------------------------------------------
-
-
-
-## event_log_file_name = '{}{}{}'.format(EVENT_LOG_FILE_NAME_BASE, generateFilenameTimestamp(), LOG_FILE_EXT)
 time_log_file_name = '{}{}{}'.format(TIME_LOG_FILE_NAME_BASE, generateFilenameTimestamp(), LOG_FILE_EXT)
 
 SOUND_LIST = getSoundList()  # Gets list of sounds in ./Sounds directory
@@ -314,23 +297,18 @@ SOUND_LIST = getSoundList()  # Gets list of sounds in ./Sounds directory
 last_button_press_time = time.time() # Sound test button
 BUTTON_DEBOUNCE = 2  # Button debounce in seconds
 
-last_sound_time = time.time()
-meow_events = []
-
-sound_events = []  # All sound events, including meows
 
 trigger_times = []
 trigger_turned_on_time = None  # Used to hold trigger
 
-# Create logs
-## event_log = Logger(event_log_file_name)
+# Create log
 time_log = Logger(time_log_file_name)
 last_log_creation_time = time.time()
 
 # Set last email sent time to now
 last_email_sent_time = time.time()
 
-# Init Pygame for sound and clock ----------
+# Init Pygame for sound  ---------------
 # Setup mixer to avoid sound lag - TODO: Do I need this?
 # pygame.mixer.pre_init(44100, -16, 2, 2048)
 print('Initializing PyGame...')
@@ -341,7 +319,6 @@ pygame.mixer.init()
 SOUND_END = pygame.USEREVENT + 1
 pygame.mixer.music.set_endevent(SOUND_END)
 
-pyclock = pygame.time.Clock()  # TODO: Not currently used, do I need this?
 # ----------------------------------------
 
 
@@ -359,14 +336,6 @@ GPIO.setup(TRIGGER_LOW_PIN, GPIO.OUT)
 
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-# TODO: REMOVE? ----------------------------------------
-meow_count = 0
-meow_count_duration = 60  # Count total meow per meow_count_duration seconds (eg per minute)
-meow_count_last_save = time.time()
-# ----------------------------------------------------------------
-
-
-recent_meow_times = []
 
 if currentTimeWithinRange():
     print ('Current time within monitor range')
