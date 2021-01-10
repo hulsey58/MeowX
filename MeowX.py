@@ -376,15 +376,9 @@ if FORCE_MONITORING_ON:
     print ('Force monitor is ON - Monitoring outside set range')
 
 
-# TODO: REMOVE THESE - Temp debugging until added to SETTINGS.txt -----------------------------------------------------
-TIME_CHUNK_SIZE = 3 # in seconds
-DET_PERCENT_THRESH = .5
-DET_CYCLES_THRESH = .5
-# ---------------------------------------------------------------------------------------------------------------------
 
 record_length_seconds = TIME_CHUNK_SIZE
 min_ms_between_polls = 0.094 # With overhead, 0.094 gives about 0.1 ms between samples
-
 
 
 record_start_time = time.time()  # Used with record_length_seconds

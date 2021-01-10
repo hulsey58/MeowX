@@ -35,3 +35,7 @@ MONITOR_END_HOUR=6           # END_HOUR assumes the next day
 MONITOR_END_MINUTE=0
 
 FORCE_MONITORING_ON=True     # Turns on monitoring outside usual monitor hours for debugging
+
+TIME_CHUNK_SIZE=0.1          # Time period in seconds to process looking for signs of meowing
+DET_PERCENT_THRESH=5         # Threshold of percent of chunk with detections that indicates meowing
+DET_CYCLES_THRESH=100        # Threshold of detection cycles/sec that indicates meowing
