@@ -354,6 +354,8 @@ record_start_time = time.time()  # Used with record_length_seconds
 last_poll_time = time.time() - min_ms_between_polls
 currently_recording = True
 pin_values = []
+last_pin_value = 1
+cycles = 0
 running = True
 while running:
     if currentTimeWithinRange() or FORCE_MONITORING_ON:
@@ -367,8 +369,13 @@ while running:
             else:
                 # Check if time to read pin
                 if time.time() - last_poll_time >= min_ms_between_polls / 1000:
-                    pin_values.append(GPIO.input(SENSOR_PIN))  ## pin_values.append((time.time(), GPIO.input(SENSOR_PIN)))
+                    new_pin_value = GPIO.input(SENSOR_PIN)
                     last_poll_time = time.time()
+                    pin_values.append(new_pin_value)
+                    if last_pin_value == 1 and new_pin_value == 0:
+                        cycles = cycles + 1
+                    last_pin_value = new_pin_value
+
 
 
         else:
@@ -406,7 +413,9 @@ while running:
             currently_recording = True
             record_start_time = time.time()
 
-
+    else:
+        # Monitoring off
+        GPIO.output(BLUE_LED_PIN, GPIO.LOW)
 
 
 r"""
