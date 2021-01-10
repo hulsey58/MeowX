@@ -3,15 +3,21 @@
 
 # ** Use restarter script on pi to monitor this script
 
+# IN PROGRESS: Adding detection logic and logging back in after switching to polling
 
-# Current version: v0.2.0
+
+# Current version: v0.3.0
 
 # Changelog:
-# v0.2.0 - Went down to one log file and changed contents. Added calculations for detection cycles/second
-#          and percent of time with sound detection. Put chunk size and test limits in settings file.
-# v0.1.0b - Took vertical bar out of datetime format and used that same format for both log files
+
+# v0.3.0 - Changed from interrupts to polling
+# v0.2.0 - Put chunk size and test limits in settings file. Added calculations for detection cycles/second
+# v0.1.1 - Took vertical bar out of datetime format and used that same format for both log files
 # v0.1.0 - Split settings out into SETTINGS.txt file which is loaded at the beginning
 # v0.0.3 - Added missed import SimpleMessage, updated to record all sounds on the rise, replaced F strings with format()
+
+# Todo:
+# v0.3.1 - Went down to one log file and changed contents.
 
 
 import RPi.GPIO as GPIO
@@ -68,31 +74,6 @@ def currentTimeWithinRange():
     return True
 
 
-def callback(channel):
-    global last_sound_time
-    global sound_events
-
-    # Called only on rising now
-    print ('Sound!  {}s since last'.format(round(time.time() - last_sound_time),2))
-    sound_events.append((time.time(), time.time() - last_sound_time))
-    last_sound_time = time.time()
-
-    #if GPIO.input(channel):
-    #        print ('--- Sound start ---')
-    #        last_sound_time = time.time()
-    #else:
-    #        print ('--- Sound end ---')
-    #        sound_events.append((time.time(), time.time() - last_sound_time))
-
-       ##     # Check if length of meow
-       ##     sound_duration = time.time() - last_sound_time
-
-       ##     if abs(sound_duration - MEOW_DURATION_AVG) <= MEOW_DURATION_RANGE:
-       ##         print (f'Meow detected - Sound length: {round(sound_duration,2)}s')
-       ##         meow_events.append(f'{generateTimestamp()}, {sound_duration}\n')
-
-       ##     else:
-       ##         print (f'Not a meow - Sound length: {round(sound_duration,2)}s')
 
 
 def playSound(path, wait_until_done = False, play_over_other_sound = False):
@@ -207,8 +188,6 @@ class Logger():
 
     def final_flush(self):
         self.flush()
-
-
 
 
 
@@ -370,9 +349,6 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 GPIO.setup(SENSOR_PIN, GPIO.IN)
-#GPIO.add_event_detect(SENSOR_PIN, GPIO.BOTH, bouncetime=100)  # Old way when trying to detect meow length
-GPIO.add_event_detect(SENSOR_PIN, GPIO.RISING, bouncetime=100)
-GPIO.add_event_callback(SENSOR_PIN, callback)
 
 GPIO.setup(BLUE_LED_PIN, GPIO.OUT)
 GPIO.setup(YELLOW_LED_PIN, GPIO.OUT)
@@ -382,10 +358,12 @@ GPIO.setup(TRIGGER_LOW_PIN, GPIO.OUT)
 
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-
+# TODO: REMOVE? ----------------------------------------
 meow_count = 0
 meow_count_duration = 60  # Count total meow per meow_count_duration seconds (eg per minute)
 meow_count_last_save = time.time()
+# ----------------------------------------------------------------
+
 
 recent_meow_times = []
 
@@ -397,15 +375,67 @@ else:
 if FORCE_MONITORING_ON:
     print ('Force monitor is ON - Monitoring outside set range')
 
-# TODO: Do I need this?
-#min_time_between_loops_ms = 1000  # Non-blocking loop limiter, passes if not time
 
+# TODO: REMOVE THESE - Temp debugging until added to SETTINGS.txt -----------------------------------------------------
+TIME_CHUNK_SIZE = 3 # in seconds
+DET_PERCENT_THRESH = .5
+DET_CYCLES_THRESH = .5
+# ---------------------------------------------------------------------------------------------------------------------
+
+record_length_seconds = TIME_CHUNK_SIZE
+min_ms_between_polls = 0.094 # With overhead, 0.094 gives about 0.1 ms between samples
+
+
+
+record_start_time = time.time()  # Used with record_length_seconds
+last_poll_time = time.time() - min_ms_between_polls
+currently_recording = True
+pin_values = []
 running = True
 while running:
     if currentTimeWithinRange() or FORCE_MONITORING_ON:
+        # Monitoring on
         GPIO.output(BLUE_LED_PIN, GPIO.HIGH)
 
+        if currently_recording:
+            # Check if time to stop recording
+            if time.time() - record_start_time >= record_length_seconds:
+                currently_recording = False
+            else:
+                # Check if time to read pin
+                if time.time() - last_poll_time >= min_ms_between_polls / 1000:
+                    pin_values.append(GPIO.input(SENSOR_PIN))  ## pin_values.append((time.time(), GPIO.input(SENSOR_PIN)))
+                    last_poll_time = time.time()
 
+
+        else:
+            # Recording just ended, read values
+            poll_value_sum = sum(pin_values)
+
+            detections = len(pin_values) - poll_value_sum  # because 0 = detection, 1 = below threshold
+            detection_rate = detections / record_length_seconds
+            detection_percent = detections / len(pin_values) * 100
+            print('{} detections/sec, {}% of the time'.format(detection_rate, detection_percent))
+
+            if detection_rate >= DET_CYCLES_THRESH:
+                print ('Detection rate above threshold: Rate: {}, Thresh: {}'.format(detection_rate, DET_CYCLES_THRESH))
+
+            if detection_percent >= DET_PERCENT_THRESH:
+                print ('Detection percent above threshold: Rate: {}, Thresh: {}'.format(detection_percent, DET_PERCENT_THRESH))
+
+
+            # Reset values
+            pin_values = []
+            last_poll_time = time.time() - min_ms_between_polls
+
+            # Record again
+            currently_recording = True
+            record_start_time = time.time()
+
+
+
+
+r"""
         # TODO: TEMP DEBUG - there are no meow_events, only sound_events
 
         # Read events_to_write to detect trigger
@@ -563,3 +593,4 @@ while running:
 
     # Loop delay
     #pyclock.tick(run_delay)
+    """
