@@ -1,12 +1,15 @@
 # Listens for cat meows by detecting loud sounds at night with the right frequency
-# Logs to 2 files - one with timestamps of sounds, one that shows sounds per minute (or per 5-min interval) for each minute
+# Logs to 1 file - timestamp of time chunk, detection cycles/second, and percent of time with sound detection
 
 # ** Use restarter script on pi to monitor this script
 
 
-# Current version: v0.1.0a
+# Current version: v0.2.0
 
 # Changelog:
+# v0.2.0 - Went down to one log file and changed contents. Added calculations for detection cycles/second
+#          and percent of time with sound detection. Put chunk size and test limits in settings file.
+# v0.1.0b - Took vertical bar out of datetime format and used that same format for both log files
 # v0.1.0 - Split settings out into SETTINGS.txt file which is loaded at the beginning
 # v0.0.3 - Added missed import SimpleMessage, updated to record all sounds on the rise, replaced F strings with format()
 
@@ -302,6 +305,13 @@ with open(SETTINGS_FILE_PATH, 'r') as f:
                 FORCE_MONITORING_ON = True
             else:
                 FORCE_MONITORING_ON = False
+        elif variable_part == 'TIME_CHUNK_SIZE':
+            TIME_CHUNK_SIZE = float(value_part)
+        elif variable_part == 'DET_PERCENT_THRESH':
+            DET_PERCENT_THRESH = float(value_part)
+        elif variable_part == 'DET_CYCLES_THRESH':
+            DET_CYCLES_THRESH = float(value_part)
+
 
 ################################################################################
 
@@ -316,7 +326,7 @@ DEFAULT_SENDER = 'autosecretary.p2p@gmail.com'  # Can't be easily changed
 
 
 
-event_log_file_name = '{}{}{}'.format(EVENT_LOG_FILE_NAME_BASE, generateFilenameTimestamp(), LOG_FILE_EXT)
+## event_log_file_name = '{}{}{}'.format(EVENT_LOG_FILE_NAME_BASE, generateFilenameTimestamp(), LOG_FILE_EXT)
 time_log_file_name = '{}{}{}'.format(TIME_LOG_FILE_NAME_BASE, generateFilenameTimestamp(), LOG_FILE_EXT)
 
 SOUND_LIST = getSoundList()  # Gets list of sounds in ./Sounds directory
@@ -333,7 +343,7 @@ trigger_times = []
 trigger_turned_on_time = None  # Used to hold trigger
 
 # Create logs
-event_log = Logger(event_log_file_name)
+## event_log = Logger(event_log_file_name)
 time_log = Logger(time_log_file_name)
 last_log_creation_time = time.time()
 

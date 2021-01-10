@@ -26,7 +26,7 @@ LOG_DURATION_HOURS=24         # Frequency to restart logs
 
 EMAIL_LOGS_ENABLED=True
 EMAIL_LOGS_FREQUENCY_HOURS=24 # Frequency to email current logs
-TO_EMAIL_ADDRESS='hulsey314@gmail.com'
+TO_EMAIL_ADDRESS='dnlhulsey@comcast.net'  # 'hulsey314@gmail.com'
 
 # Start and end monitor times (24-hour, integers)
 MONITOR_START_HOUR=22
