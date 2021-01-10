@@ -6,27 +6,16 @@
 # IN PROGRESS: Adding detection logic and logging back in after switching to polling
 
 
-# Current version: v0.3.0
+# Current version: v0.3.1
+
 
 # Changelog:
-
+# v0.3.1 - Updated to single log file in format: time, detection rate, detection percent, rate triggered, percent triggered
 # v0.3.0 - Changed from interrupts to polling
 # v0.2.0 - Put chunk size and test limits in settings file. Added calculations for detection cycles/second
 # v0.1.1 - Took vertical bar out of datetime format and used that same format for both log files
 # v0.1.0 - Split settings out into SETTINGS.txt file which is loaded at the beginning
 # v0.0.3 - Added missed import SimpleMessage, updated to record all sounds on the rise, replaced F strings with format()
-
-# Todo:
-# v0.3.1 - Went down to one log file and changed contents.
-
-r"""
-I recommend having MeowX.py output just one log file with the
-timestamp of the current time chunk, detection cycles/second, and percent of time with sound detections as calculated in PollTestCont.py and maybe a 1 or 0 for whether it decided that chunk of time had meowing.
-
-I am thinking detection cycles/sec should look at how many times per second the sensor goes from 1 to 0 then back to 1 rather than
-just dividing the number of detections by the number of seconds.
-
-"""
 
 
 
