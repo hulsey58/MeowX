@@ -19,6 +19,16 @@
 # Todo:
 # v0.3.1 - Went down to one log file and changed contents.
 
+r"""
+I recommend having MeowX.py output just one log file with the
+timestamp of the current time chunk, detection cycles/second, and percent of time with sound detections as calculated in PollTestCont.py and maybe a 1 or 0 for whether it decided that chunk of time had meowing.
+
+I am thinking detection cycles/sec should look at how many times per second the sensor goes from 1 to 0 then back to 1 rather than
+just dividing the number of detections by the number of seconds.
+
+"""
+
+
 
 import RPi.GPIO as GPIO
 from datetime import datetime, timedelta
@@ -140,7 +150,7 @@ class Logger():
         self.last_log_added = 0
 
         self.last_write_time = 0
-        self.min_s_between_writes = 15
+        self.min_s_between_writes = 5
 
         if not self.log_exists():
             self.create_log()
@@ -188,6 +198,8 @@ class Logger():
 
     def final_flush(self):
         self.flush()
+
+
 
 
 
@@ -376,7 +388,6 @@ if FORCE_MONITORING_ON:
     print ('Force monitor is ON - Monitoring outside set range')
 
 
-
 record_length_seconds = TIME_CHUNK_SIZE
 min_ms_between_polls = 0.094 # With overhead, 0.094 gives about 0.1 ms between samples
 
@@ -411,11 +422,22 @@ while running:
             detection_percent = detections / len(pin_values) * 100
             print('{} detections/sec, {}% of the time'.format(detection_rate, detection_percent))
 
+
             if detection_rate >= DET_CYCLES_THRESH:
-                print ('Detection rate above threshold: Rate: {}, Thresh: {}'.format(detection_rate, DET_CYCLES_THRESH))
+                # print ('Detection rate above threshold: Rate: {}, Thresh: {}'.format(detection_rate, DET_CYCLES_THRESH))
+                rate_triggered = 1
+            else:
+                rate_triggered = 0
+
 
             if detection_percent >= DET_PERCENT_THRESH:
-                print ('Detection percent above threshold: Rate: {}, Thresh: {}'.format(detection_percent, DET_PERCENT_THRESH))
+                # print ('Detection percent above threshold: Rate: {}, Thresh: {}'.format(detection_percent, DET_PERCENT_THRESH))
+                percent_triggered = 1
+            else:
+                percent_triggered = 0
+
+
+            time_log.add_line('{}, {}, {}, {}, {}\n'.format(time.time(), detection_rate, detection_percent, rate_triggered, percent_triggered))
 
 
             # Reset values
