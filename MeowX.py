@@ -4,10 +4,12 @@
 # ** Use restarter script on pi to monitor this script
 
 
-# Current version: v0.3.5
+# Current version: v0.3.7
 
 
 # Changelog:
+# v0.3.7 - Took currentTimeWithinRange calculation out of the polling loop to try speeding it up
+# v0.3.6 - Expanded application of test for no samples to the other processing steps that would crash without samples
 # v0.3.5 - Fixed bug in writing times to event log. Now each chunk starts with full date and time followed by seconds of offset from that time
 # v0.3.4 - Added test to prevent divide by 0 and dump of chunk data to event log once per hour
 # v0.3.3 - Fixed timestamp and log detections during meows according to cycles/sec
@@ -363,9 +365,12 @@ times = []
 pin_values = []
 last_pin_value = 1
 cycles = 0
+rate_triggered = 0
+percent_triggered = 0
+TimeToRun = currentTimeWithinRange() or FORCE_MONITORING_ON
 running = True
 while running:
-    if currentTimeWithinRange() or FORCE_MONITORING_ON:
+    if TimeToRun:
         # Monitoring on
         GPIO.output(BLUE_LED_PIN, GPIO.HIGH)
 
@@ -391,59 +396,62 @@ while running:
             poll_value_sum = sum(pin_values)
             detections = len(pin_values) - poll_value_sum  # because 0 = detection, 1 = below threshold
             cycle_rate = cycles / record_length_seconds
+
             
-            if len(pin_values) > 0:   # Added because one time it crashed due to divide by 0 here.
-                detection_percent = detections / len(pin_values) * 100
-            else:
-                detection_percent = 0
+            if len(pin_values) == 0:   # Added because sometimes it crashes due to no samples collected.
                 print('WARNING: len(pin_values) = 0')
+                detection_percent = 0
+                cycle_rate = 0
                 event_log.add_line('{}, xxx, WARNING: len(pin_values) = 0\n'.format(convertTimeToTimestamp(time.time())))
-                
-            print('{} cycles/sec, detections {}% of the time'.format(cycle_rate, detection_percent))
-
-            # Dump detection data from current chunk to event log once an hour
-            hour = time.localtime().tm_hour
-            if hour > last_hour:
-                # Dump detection data from current chunk to event log
-                event_log.add_line('{}\n'.format(convertTimeToTimestamp(times[1])))
-                for i in range(len(pin_values)):
-                    event_log.add_line('{}, {}\n'.format(times[i] - times[1], pin_values[i]))
-                if hour < 23:
-                    last_hour = hour
-                else:
-                    last_hour = -1
 
 
-            # Check for a possible meow based on cycle rate
-            if cycle_rate >= DET_CYCLES_THRESH:
-                # print ('Detection cycles above threshold: Rate: {}, Thresh: {}'.format(cycle_rate, DET_CYCLES_THRESH))
-                rate_triggered = 1
-                # Dump detection data from current chunk to event log
-                event_log.add_line('{}\n'.format(convertTimeToTimestamp(times[1])))
-                for i in range(len(pin_values)):
-                    event_log.add_line('{}, {}\n'.format(times[i] - times[1], pin_values[i]))
             else:
-                rate_triggered = 0
-                
-
-            # Check for a possible meow based on detection percent
-            if detection_percent >= DET_PERCENT_THRESH:
-                # print ('Detection percent above threshold: %: {}, Thresh: {}'.format(detection_percent, DET_PERCENT_THRESH))
-                percent_triggered = 1
-            else:
-                percent_triggered = 0
+                detection_percent = detections / len(pin_values) * 100
+                print('{} cycles/sec, detections {}% of the time'.format(cycle_rate, detection_percent))
 
 
-            time_log.add_line('{}, {}, {}, {}, {}\n'.format(convertTimeToTimestamp(time.time()), cycle_rate, detection_percent, rate_triggered, percent_triggered))
+                # Dump detection data from current chunk to event log once an hour
+                hour = time.localtime().tm_hour
+                if hour > last_hour:
+                    # Dump detection data from current chunk to event log
+                    event_log.add_line('{}\n'.format(convertTimeToTimestamp(times[0])))
+                    for i in range(len(pin_values)):
+                        event_log.add_line('{}, {}\n'.format(times[i] - times[0], pin_values[i]))
+                    if hour < 23:
+                        last_hour = hour
+                    else:
+                        last_hour = -1
+
+
+                # Check for a possible meow based on cycle rate
+                if cycle_rate >= DET_CYCLES_THRESH:
+                    # print ('Detection cycles above threshold: Rate: {}, Thresh: {}'.format(cycle_rate, DET_CYCLES_THRESH))
+                    rate_triggered = 1
+                    # Dump detection data from current chunk to event log
+                    event_log.add_line('{}\n'.format(convertTimeToTimestamp(times[0])))
+                    for i in range(len(pin_values)):
+                        event_log.add_line('{}, {}\n'.format(times[i] - times[0], pin_values[i]))
+                    
+
+                # Check for a possible meow based on detection percent
+                if detection_percent >= DET_PERCENT_THRESH:
+                    # print ('Detection percent above threshold: %: {}, Thresh: {}'.format(detection_percent, DET_PERCENT_THRESH))
+                    percent_triggered = 1
+
+
+            time_log.add_line('{}, {}, {}, {}, {}, {}\n'.format(convertTimeToTimestamp(time.time()), cycle_rate, detection_percent, len(pin_values), rate_triggered, percent_triggered))
 
 
             # Reset values
             pin_values = []
             cycles = 0
+            rate_triggered = 0
+            percent_triggered = 0
             last_poll_time = time.time() - min_ms_between_polls
 
             # Record again
             currently_recording = True
+            TimeToRun = currentTimeWithinRange() or FORCE_MONITORING_ON
             record_start_time = time.time()
 
     else:
