@@ -4,10 +4,11 @@
 # ** Use restarter script on pi to monitor this script
 
 
-Current_version = 'v0.3.8'
+Current_version = 'v0.3.9'
 
 
 # Changelog:
+# v0.3.9 - Fixed hour rollover problem for recording to event log.
 # v0.3.8 - Fixed bug of not clearing "times", added fine time to event logs, added log headers, added lines to resume sampling when TimeToRun goes from false to true.
 # v0.3.7 - Took currentTimeWithinRange calculation out of the polling loop to try speeding it up
 # v0.3.6 - Expanded application of test for no samples to the other processing steps that would crash without samples
@@ -373,7 +374,7 @@ min_ms_between_polls = 0.094 # With overhead, 0.094 gives about 0.1 ms between s
 
 record_start_time = time.time()  # Used with record_length_seconds
 last_poll_time = time.time() - min_ms_between_polls
-last_hour = time.localtime().tm_hour
+last_e_hour = int(time.time()/3600)
 currently_recording = True
 times = []
 pin_values = []
@@ -425,16 +426,14 @@ while running:
 
 
                 # Dump detection data from current chunk to event log once an hour
-                hour = time.localtime().tm_hour
-                if hour > last_hour:
+                e_hour = int(time.time()/3600)
+                if e_hour > last_e_hour:
                     # Dump detection data from current chunk to event log
-                    event_log.add_line('{}\n'.format(convertTimeToFineTimestamp(times[0])))
+                    hour = time.localtime().tm_hour
+                    event_log.add_line('{}, Hr {}\n'.format(convertTimeToFineTimestamp(times[0]), hour))
                     for i in range(len(pin_values)):
                         event_log.add_line(', {}, {}\n'.format(times[i] - times[0], pin_values[i]))
-                    if hour < 23:
-                        last_hour = hour
-                    else:
-                        last_hour = -1
+                        last_e_hour = e_hour
 
 
                 # Check for a possible meow based on cycle rate
@@ -442,7 +441,7 @@ while running:
                     # print ('Detection cycles above threshold: Rate: {}, Thresh: {}'.format(cycle_rate, DET_CYCLES_THRESH))
                     rate_triggered = 1
                     # Dump detection data from current chunk to event log
-                    event_log.add_line('{}\n'.format(convertTimeToFineTimestamp(times[0])))
+                    event_log.add_line('{}, {}\n'.format(convertTimeToFineTimestamp(times[0]), cycle_rate))
                     for i in range(len(pin_values)):
                         event_log.add_line(', {}, {}\n'.format(times[i] - times[0], pin_values[i]))
                     
